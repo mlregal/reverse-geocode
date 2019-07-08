@@ -1,0 +1,30 @@
+trigger quoteTrigger on Quote (after insert, after update) {
+    
+    List<Quote> quoteList = new List<Quote>();
+
+    if(Trigger.isInsert){
+        for(Quote q : Trigger.new){
+            if (q.Job_Site_Geolocation__latitude__s != NULL && q.Job_Site_Geolocation__longitude__s != NULL) {
+                quoteList.add(q);
+            }
+        }
+    }
+
+    if(Trigger.isUpdate){
+        for(Quote q : Trigger.new){
+            Quote oldQuote = Trigger.oldMap.get(q.Id);
+            Quote newQuote = Trigger.newMap.get(q.Id);
+            if((oldQuote.Job_Site_Geolocation__latitude__s != newQuote.Job_Site_Geolocation__latitude__s) || 
+                (oldQuote.Job_Site_Geolocation__longitude__s != newQuote.Job_Site_Geolocation__longitude__s)){
+                quoteList.add(q);
+            }
+            
+        }
+    }
+    for(Quote q : quoteList){
+        System.debug('Quote Id: ');
+    }
+    
+    retrieveAddress.getAddress(quoteList);
+
+}
