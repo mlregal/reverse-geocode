@@ -7,46 +7,46 @@ global with sharing class retrieveAddress {
         for(Quote q : quoteList){
             query = q.Job_Site_Geolocation__latitude__s + ',' + q.Job_Site_Geolocation__longitude__s;
             System.debug('Query text: ' + query);
-            HttpResponse res = getHttpCallout(q.Id,query);
-            JSONParser parser = JSON.createParser(res.getBody());
-            String houseNumber;
-            String streetName;
-            while(parser.nextToken() != NULL){
-                if(parser.getCurrentName() == 'city'){
-                    q.Job_Site_City__c = parser.getText();
-                } else if(parser.getCurrentName() == 'country'){
-                    q.Job_Site_Country__c = parser.getText();
-                } else if(parser.getCurrentName() == 'house_number'){
-                    houseNumber = parser.getText();
-                } else if(parser.getCurrentName() == 'postcode'){
-                    q.Job_Site_Postal_Zip__c = parser.getText();
-                } else if(parser.getCurrentName() == 'road'){
-                    streetName = parser.getText();
-                } else if(parser.getCurrentName() =='state_code'){
-                    q.Job_Site_State_Province__c = parser.getText();
-                }
-                parser.nextToken();
-            }
-            q.Job_Site_Street__c = houseNumber + ' ' + streetName;
-            quoteUpdateList.add(q);
-
+            getHttpCallout(query,q.Id);
         }
-        update quoteUpdateList;
     }
     @future (callout = true)
-    global HttpResponse getHttpCallout(Id quoteId,String query){
+    public static void getHttpCallout(String query, Id quoteId){
         Http h = new Http();
 
         HttpRequest req = new HttpRequest();
-        req.setEndpoint('https://opencage-geocoder.p.rapidapi.com/geocode/v1/json?language=en&key=[ENTER KEY HERE}&q='+ query);
+        req.setEndpoint('https://opencage-geocoder.p.rapidapi.com/geocode/v1/json?language=en&key=[Open Cage API KEY]&q='+ query);
         req.setMethod('GET');
         req.setHeader('X-RapidAPI-Host', 'opencage-geocoder.p.rapidapi.com');
-        req.setHeader('X-RapidAPI-Key', 'ENTER RAPID API KEY');
+        req.setHeader('X-RapidAPI-Key', '[RAPID API KEY');
 
         HttpResponse res = h.send(req);
         System.debug(res.getBody());
-        
-        return res;
+        JSONParser parser = JSON.createParser(res.getBody());
+        String houseNumber;
+        String streetName;
+        Quote q = [SELECT Id, Name, Job_Site_City__c, Job_Site_Country__c, Job_Site_Postal_Zip__c, Job_Site_State_Province__c, Job_Site_Street__c
+                    FROM Quote 
+                    WHERE Id = :quoteId
+                    LIMIT 1];
+        while(parser.nextToken() != NULL){
+            if(parser.getCurrentName() == 'city'){
+                q.Job_Site_City__c = parser.getText();
+            } else if(parser.getCurrentName() == 'country'){
+                q.Job_Site_Country__c = parser.getText();
+            } else if(parser.getCurrentName() == 'house_number'){
+                houseNumber = parser.getText();
+            } else if(parser.getCurrentName() == 'postcode'){
+                q.Job_Site_Postal_Zip__c = parser.getText();
+            } else if(parser.getCurrentName() == 'road'){
+                streetName = parser.getText();
+            } else if(parser.getCurrentName() =='state_code'){
+                q.Job_Site_State_Province__c = parser.getText();
+            }
+            parser.nextToken();
+        }
+        q.Job_Site_Street__c = houseNumber + ' ' + streetName;
+        update q;
 
     }
 }
